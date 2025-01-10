@@ -7,7 +7,9 @@ export enum SubscribeStates {
     ASK_COMPLETE = 'Все вірно?',
     SUBSCRIBE = 'Підписатися',
     AGAIN = 'Заповнити заново',
-    VIEW = 'Переглянути дані'
+    VIEW = 'Переглянути дані',
+    UPDATE = 'Ваші дані оновлені',
+    RESTART = 'Обновити бота'
 }
 
 export enum AnswerStates {

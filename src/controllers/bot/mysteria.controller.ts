@@ -11,4 +11,14 @@ export class MysteriaController{
         const replyKeyboard = UtilitesBot.keyboard(2, textOfMysteries)
         return replyKeyboard;
     }
+
+    async getMysteriaById(id:number):Promise<Mysteria>{
+        const mysteria = await this.mysteriesService.getMysteriaById(id);
+
+        return mysteria as Mysteria;
+    }
+
+    async updateMysteries():Promise<void>{
+        await this.mysteriesService.updateMysteria();
+    }
 }

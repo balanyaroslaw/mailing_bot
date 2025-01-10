@@ -1,9 +1,11 @@
-import { Mysteria } from "./mysteria.interface"
+import { Mysteria } from "../models/mysteria.model"
+
 
 export interface IUser {
     id:number,
     name:string,
     email:string | null,
-    tgId:number | null
-    mysteria: Omit<Mysteria,'id'>
+    tg_id:number | null
+    mysteria: Mysteria
+    mysteries_id?:number
 }

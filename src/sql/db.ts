@@ -1,5 +1,6 @@
 import { Pool, QueryResult, QueryResultRow } from 'pg';
 import dotenv from 'dotenv';
+import { error } from 'console';
 
 dotenv.config();
 
@@ -13,6 +14,9 @@ export class Database {
             user: process.env.DB_USER,
             password: process.env.DB_PASSWORD,
             database: process.env.DB_NAME,
+            ssl: {
+              rejectUnauthorized: false, 
+            },
           });
   
       this.pool.on('error', (err) => {
@@ -22,7 +26,7 @@ export class Database {
     }
   
     public async query<T extends QueryResultRow>(text: string, params?: any[]): Promise<QueryResult<T>> {
-      const client = await this.pool.connect();
+      const client = await this.pool.connect()
       try {
         return await client.query<T>(text, params);
       } finally {

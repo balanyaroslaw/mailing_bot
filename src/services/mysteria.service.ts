@@ -3,7 +3,7 @@ import { IUserService } from "../interfaces/user.service.interface";
 import { Mysteria } from "../models/mysteria.model";
 import { User } from "../models/user.model";
 import { Database } from "../sql/db";
-import { GET_MYSTERIA, GET_MYSTERIES } from "../sql/queries";
+import { GET_MYSTERIA, GET_MYSTERIES, UPDATE_MYSTERIES } from "../sql/queries";
 
 export class MysteriaService{
     private db:Database;
@@ -17,9 +17,13 @@ export class MysteriaService{
       return result.rows as Mysteria[];
     }
 
-    async getMysteriaById(): Promise<Mysteria> {
-        const result = await this.db.query<Mysteria>(GET_MYSTERIA, [1]);
+    async getMysteriaById(id:number): Promise<Mysteria> {
+        const result = await this.db.query<Mysteria>(GET_MYSTERIA, [id]);
         return result.rows[0] as Mysteria;
+      }
+    
+    async updateMysteria():Promise<void>{
+        await this.db.query<Mysteria>(UPDATE_MYSTERIES);
       }
 
   }

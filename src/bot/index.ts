@@ -1,6 +1,6 @@
 import TelegramBot from "node-telegram-bot-api";
 import {replyCompleteButton, replyOptionsButton, replySubscribeButton} from "./buttons.bot";
-import { EnterMessages, profileMessage } from "../keys/messages/messages.messages";
+import { dailyMessage, EnterMessages, profileMessage, updatedMysteria } from "../keys/messages/messages.messages";
 import { AnswerStates, SubscribeStates } from "../keys/enums/subscribe.enum";
 import { IUser } from "../interfaces/user.interface";
 import { User } from "../models/user.model";
@@ -11,6 +11,7 @@ import { Database } from "../sql/db";
 import { UtilitesBot } from "../utilities/bot";
 import { UserController } from "../controllers/bot/user.controller";
 import { UserService } from "../services/user.service";
+import { error } from "console";
 
 export class Bot {
     private static instance: Bot;
@@ -23,7 +24,15 @@ export class Bot {
     constructor(private token: string) {
         this.mysteriaController = new MysteriaController(new MysteriaService(new Database));
         this.userController = new UserController(new UserService(new Database));
-        this.bot = new TelegramBot(token, { polling: true });
+        this.bot = new TelegramBot(token, {
+            polling: {
+              interval: 300,  
+              autoStart: true,
+              params: {
+                timeout: 10, 
+              },
+            },
+          });
         this.subscribinState = SubscribeStates.SUBSCRIBE;
         this.initialize();
     }
@@ -53,7 +62,7 @@ export class Bot {
     private handleSubscribing(msg: TelegramBot.Message): void {
         const chatId = msg.chat.id;
         const text = msg.text!;
-        this.user.tgId = chatId;
+        this.user.tg_id = chatId;
     
         if(this.subscribinState !== SubscribeStates.UNSUBSCRIBE) {
             if (text === SubscribeStates.SUBSCRIBE) {
@@ -71,6 +80,7 @@ export class Bot {
                 .then(mysteriesKeyboard => {
                     this.bot.sendMessage(chatId, `${AnswerStates.RECORD_EMAIL}: ${text} \n${SubscribeStates.ASK_MYSTERIA}`, mysteriesKeyboard);
                 })
+                .catch(error=>console.log(error))
                 .finally(() => this.subscribinState = SubscribeStates.ASK_MYSTERIA);
             }
             else if(this.subscribinState === SubscribeStates.ASK_MYSTERIA) {
@@ -81,7 +91,14 @@ export class Bot {
             }
     
             if(text === AnswerStates.COMPLETE){
-                this.userController.addNewUser(this.user).finally(()=>this.bot.sendMessage(chatId, AnswerStates.END, replyOptionsButton))
+                this.userController.getUser(chatId).then(existedUser=>{
+                    if(existedUser){
+                        this.userController.updateUser(this.user).then(()=>this.bot.sendMessage(chatId, SubscribeStates.UPDATE, replyOptionsButton)).catch(error=>console.log(error))
+                    }
+                    else{
+                        this.userController.addNewUser(this.user).catch(error=>console.log(error)).finally(()=>this.bot.sendMessage(chatId, AnswerStates.END, replyOptionsButton))
+                    }
+                })
             }
         }
     
@@ -111,5 +128,49 @@ export class Bot {
         });
         }
     }
+
+    private handleUpdateMysteries(chatId:number):void{
+        if(new Date().getDate() === 1){
+            this.mysteriaController.updateMysteries().then(()=>{
+                this.userController.getUser(chatId).then(user=>{
+                    this.mysteriaController.getMysteriaById(user?.mysteries_id!).then(mysteria=>{
+                        this.bot.sendMessage(chatId, updatedMysteria(mysteria));
+                    }).catch(error=>console.log(error))
+                }).catch(error=>console.log(error))
+            }).catch(error=>console.log(error))
+        }
+    }
+
+    private Mailing():void{
+        this.userController.getAllUsers().then((users) => {
+            for (let user of users) {
+                if (user.tg_id) {
+                    this.bot.sendMessage(user.tg_id!, dailyMessage());
+                    this.handleUpdateMysteries(user.tg_id!);
+                }
+            }
+        }).catch(error=>console.log(error));;
+    }
     
+    private scheduleDailyMailing(): void {
+        const now = new Date();
+        const next3PM = new Date();
+    
+        next3PM.setHours(15, 0, 0, 0); 
+    
+        if (now > next3PM) {
+            next3PM.setDate(next3PM.getDate() + 1);
+        }
+    
+        const delay = next3PM.getTime() - now.getTime();
+    
+        setTimeout(() => {
+            this.Mailing(); 
+            this.scheduleDailyMailing(); 
+        }, delay);
+    }
+    
+    public Start(): void {
+        this.scheduleDailyMailing(); 
+    }
 }

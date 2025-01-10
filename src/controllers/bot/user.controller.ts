@@ -15,7 +15,17 @@ export class UserController{
     } 
 
     async getUser(tg_id:number):Promise<User | null>{
-       const user =  await this.userService.getUserByTgId(tg_id)
-       return user
+       const user = await this.userService.getUserByTgId(tg_id)
+       return user as User
+    }
+
+    async updateUser(user:User):Promise<User>{
+        const updatedUser = await this.userService.updateUser(user);
+        return updatedUser;
+    }
+
+    async getAllUsers():Promise<User[]>{
+        const users = await this.userService.getUsers();
+        return users as User[]
     }
 }
