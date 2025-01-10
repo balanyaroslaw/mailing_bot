@@ -11,7 +11,8 @@ import { Database } from "../sql/db";
 import { UtilitesBot } from "../utilities/bot";
 import { UserController } from "../controllers/bot/user.controller";
 import { UserService } from "../services/user.service";
-import { error } from "console";
+import express from "express";
+import bodyParser from "body-parser";
 
 export class Bot {
     private static instance: Bot;
@@ -20,19 +21,12 @@ export class Bot {
     private user:User= new User('', '', null, {} as Mysteria);
     private mysteriaController:MysteriaController;
     private userController:UserController;
+    private webhookUrl = 'https://mailing-922tfjmt9-yaroslaws-projects.vercel.app/'
 
     constructor(private token: string) {
         this.mysteriaController = new MysteriaController(new MysteriaService(new Database));
         this.userController = new UserController(new UserService(new Database));
-        this.bot = new TelegramBot(token, {
-            polling: {
-              interval: 300,  
-              autoStart: true,
-              params: {
-                timeout: 10, 
-              },
-            },
-          });
+        this.bot = new TelegramBot(token);
         this.subscribinState = SubscribeStates.SUBSCRIBE;
         this.initialize();
     }
@@ -46,7 +40,29 @@ export class Bot {
         this.bot.onText(/\/start/, (msg:TelegramBot.Message) => this.handleStartCommand(msg));
         this.bot.on('message', (msg: TelegramBot.Message)=> this.handleSubscribing(msg))
         this.bot.on('message', (msg: TelegramBot.Message)=> this.handleDelete(msg))
+        this.initializeWebhook();
     }
+
+    private initializeWebhook(): void {
+        const app = express();
+    
+        app.use(bodyParser.json());
+    
+        app.post(`/bot${this.token}`, (req, res) => {
+          this.bot.processUpdate(req.body); 
+          res.sendStatus(200);
+        });
+    
+        const PORT = process.env.PORT || 3000;
+        app.listen(PORT, () => {
+          console.log(`Server running on port ${PORT}`);
+        });
+    
+        this.bot
+          .setWebHook(`${this.webhookUrl}/bot${this.token}`)
+          .then(() => console.log(`Webhook set at ${this.webhookUrl}/bot${this.token}`))
+          .catch((err) => console.error("Error setting webhook:", err));
+      }
 
     private handleStartCommand(msg: TelegramBot.Message): void {
         const chatId = msg.chat.id;
