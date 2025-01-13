@@ -97,7 +97,7 @@ export class Bot {
                         this.userController.updateUser(this.user).then(()=>this.bot.sendMessage(chatId, SubscribeStates.UPDATE, replyOptionsButton)).catch(error=>console.log(error))
                     }
                     else{
-                        this.userController.addNewUser(this.user).catch(error=>console.log(error)).finally(()=>this.bot.sendMessage(chatId, AnswerStates.END, replyOptionsButton))
+                        this.userController.addNewUser(this.user).catch(error=>console.log(error)).finally(()=>{this.bot.sendMessage(chatId, AnswerStates.END, replyOptionsButton); this.user = new User('','', null, {} as Mysteria);})
                     }
                 })
             }

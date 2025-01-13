@@ -22,7 +22,6 @@ jspm_packages/
 
 # Build output
 dist/
-build/
 
 # IDEs and Editors
 .idea/
