@@ -130,6 +130,7 @@ export class Bot {
         const chatId = msg.chat.id;
         const text = msg.text!;
         console.log(this.subscribinState)
+        console.log(this.userSession.get(chatId))
         if(text === SubscribeStates.UNSUBSCRIBE){
             this.userController.deleteUser(this.user).then(()=>{
                 this.bot.sendMessage(chatId, AnswerStates.END_UNSUBSCRIBING)

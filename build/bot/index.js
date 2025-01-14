@@ -124,6 +124,7 @@ var Bot = /** @class */ (function () {
         var chatId = msg.chat.id;
         var text = msg.text;
         console.log(this.subscribinState);
+        console.log(this.userSession.get(chatId));
         if (text === subscribe_enum_1.SubscribeStates.UNSUBSCRIBE) {
             this.userController.deleteUser(this.user).then(function () {
                 _this.bot.sendMessage(chatId, subscribe_enum_1.AnswerStates.END_UNSUBSCRIBING);
