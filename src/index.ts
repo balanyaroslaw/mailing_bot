@@ -1,20 +1,62 @@
-import { Bot } from "./bot";
 import dotenv from 'dotenv';
 import express, { Request, Response } from 'express';
+import { Bot } from './bot';
+
 dotenv.config();
-const app = express();
 
-const port = process.env.PORT || 3000;
-console.log(port)
-app.get('/', (req: Request, res: Response) => {
-  res.send('port');
-});
+class Server {
+  private app = express();
+  private port: number | string;
 
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
-});
+  constructor() {
+    this.port = process.env.PORT || 3000;
+    this.setupRoutes();
+  }
 
-const telegramToken = process.env.TELEGRAM_TOKEN!;
+  private setupRoutes(): void {
+    this.app.get('/', (req: Request, res: Response) => {
+      res.send('for heroku only');
+    });
+  }
 
-const botInstance = Bot.getInstance(telegramToken);
-botInstance.Start(); 
+  public start(): void {
+    this.app.listen(this.port, () => {
+      console.log(`Server is running on port ${this.port}`);
+    });
+  }
+}
+
+class TelegramBot {
+  private botInstance: Bot;
+
+  constructor(private token: string) {
+    this.botInstance = Bot.getInstance(this.token);
+  }
+
+  public start(): void {
+    this.botInstance.Start();
+  }
+}
+
+class Application {
+  private server: Server;
+  private bot: TelegramBot;
+
+  constructor() {
+    const telegramToken = process.env.TELEGRAM_TOKEN!;
+    if (!telegramToken) {
+      throw new Error('TELEGRAM_TOKEN is not defined in environment variables.');
+    }
+
+    this.server = new Server();
+    this.bot = new TelegramBot(telegramToken);
+  }
+
+  public start(): void {
+    this.server.start();
+    this.bot.start();
+  }
+}
+
+const app = new Application();
+app.start();

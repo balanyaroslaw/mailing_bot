@@ -20,6 +20,7 @@ var Bot = /** @class */ (function () {
     function Bot(token) {
         this.token = token;
         this.user = new user_model_1.User('', '', null, {});
+        this.userSession = new Map();
         this.mysteriaController = new mysteria_controller_1.MysteriaController(new mysteria_service_1.MysteriaService(new db_1.Database));
         this.userController = new user_controller_1.UserController(new user_service_1.UserService(new db_1.Database));
         this.bot = new node_telegram_bot_api_1.default(token, {
@@ -60,19 +61,19 @@ var Bot = /** @class */ (function () {
         var _this = this;
         var chatId = msg.chat.id;
         var text = msg.text;
-        this.user.tg_id = chatId;
+        this.userSession.set(chatId, this.user);
         if (this.subscribinState !== subscribe_enum_1.SubscribeStates.UNSUBSCRIBE) {
             if (text === subscribe_enum_1.SubscribeStates.SUBSCRIBE) {
                 this.bot.sendMessage(chatId, subscribe_enum_1.SubscribeStates.ASK_NAME);
                 this.subscribinState = subscribe_enum_1.SubscribeStates.ASK_NAME;
             }
             else if (this.subscribinState === subscribe_enum_1.SubscribeStates.ASK_NAME) {
-                this.user.name = text;
+                this.userSession.get(chatId).name = text;
                 this.bot.sendMessage(chatId, "".concat(subscribe_enum_1.AnswerStates.RECORD_NAME, ": ").concat(text, " \n").concat(subscribe_enum_1.SubscribeStates.ASK_EMAIL));
                 this.subscribinState = subscribe_enum_1.SubscribeStates.ASK_EMAIL;
             }
             else if (this.subscribinState === subscribe_enum_1.SubscribeStates.ASK_EMAIL) {
-                this.user.email = text;
+                this.userSession.get(chatId).email = text;
                 this.mysteriaController.getAllMysteries()
                     .then(function (mysteriesKeyboard) {
                     _this.bot.sendMessage(chatId, "".concat(subscribe_enum_1.AnswerStates.RECORD_EMAIL, ": ").concat(text, " \n").concat(subscribe_enum_1.SubscribeStates.ASK_MYSTERIA), mysteriesKeyboard);
@@ -81,24 +82,38 @@ var Bot = /** @class */ (function () {
                     .finally(function () { return _this.subscribinState = subscribe_enum_1.SubscribeStates.ASK_MYSTERIA; });
             }
             else if (this.subscribinState === subscribe_enum_1.SubscribeStates.ASK_MYSTERIA) {
-                this.user.mysteria = new mysteria_model_1.Mysteria(text, bot_1.UtilitesBot.getId(text));
-                this.user.mysteria.text = text;
-                this.bot.sendMessage(chatId, (0, messages_messages_1.profileMessage)(this.user.name, this.user.email, this.user.mysteria.text), buttons_bot_1.replyCompleteButton);
+                this.userSession.get(chatId).mysteria = new mysteria_model_1.Mysteria(text, bot_1.UtilitesBot.getId(text));
+                this.userSession.get(chatId).mysteria.text = text;
+                this.bot.sendMessage(chatId, (0, messages_messages_1.profileMessage)(this.userSession.get(chatId).name, this.userSession.get(chatId).email, this.userSession.get(chatId).mysteria.text), buttons_bot_1.replyCompleteButton);
                 this.subscribinState = subscribe_enum_1.SubscribeStates.ASK_COMPLETE;
             }
             if (text === subscribe_enum_1.AnswerStates.COMPLETE) {
                 this.userController.getUser(chatId).then(function (existedUser) {
                     if (existedUser) {
-                        _this.userController.updateUser(_this.user).then(function () { return _this.bot.sendMessage(chatId, subscribe_enum_1.SubscribeStates.UPDATE, buttons_bot_1.replyOptionsButton); }).catch(function (error) { return console.log(error); });
+                        _this.userController.updateUser(_this.userSession.get(chatId))
+                            .then(function () {
+                            _this.bot.sendMessage(chatId, subscribe_enum_1.SubscribeStates.UPDATE, buttons_bot_1.replyOptionsButton);
+                            _this.user = new user_model_1.User('', '', null, {});
+                            _this.userSession.delete(chatId);
+                        })
+                            .catch(function (error) { return console.log(error); });
                     }
                     else {
-                        _this.userController.addNewUser(_this.user).catch(function (error) { return console.log(error); }).finally(function () { _this.bot.sendMessage(chatId, subscribe_enum_1.AnswerStates.END, buttons_bot_1.replyOptionsButton); _this.user = new user_model_1.User('', '', null, {}); });
+                        _this.userController.addNewUser(_this.userSession.get(chatId))
+                            .catch(function (error) { return console.log(error); })
+                            .finally(function () {
+                            _this.bot.sendMessage(chatId, subscribe_enum_1.AnswerStates.END, buttons_bot_1.replyOptionsButton);
+                            _this.user = new user_model_1.User('', '', null, {});
+                            _this.userSession.delete(chatId);
+                        });
                     }
                 });
             }
         }
         if (text === subscribe_enum_1.SubscribeStates.AGAIN) {
-            this.user = {};
+            this.user = new user_model_1.User('', '', null, {});
+            this.userSession.delete(chatId);
+            this.userSession.set(chatId, this.user);
             this.subscribinState = subscribe_enum_1.SubscribeStates.SUBSCRIBE;
             this.bot.sendMessage(chatId, subscribe_enum_1.SubscribeStates.ASK_NAME);
             this.subscribinState = subscribe_enum_1.SubscribeStates.ASK_NAME;
@@ -112,7 +127,8 @@ var Bot = /** @class */ (function () {
         if (text === subscribe_enum_1.SubscribeStates.UNSUBSCRIBE) {
             this.userController.deleteUser(this.user).then(function () {
                 _this.bot.sendMessage(chatId, subscribe_enum_1.AnswerStates.END_UNSUBSCRIBING);
-                _this.user = {};
+                _this.user = new user_model_1.User('', '', null, {});
+                _this.userSession.delete(chatId);
                 _this.subscribinState = subscribe_enum_1.SubscribeStates.SUBSCRIBE;
                 if (_this.subscribinState === subscribe_enum_1.SubscribeStates.SUBSCRIBE) {
                     _this.bot.sendMessage(chatId, messages_messages_1.EnterMessages.enter_message, buttons_bot_1.replySubscribeButton);
