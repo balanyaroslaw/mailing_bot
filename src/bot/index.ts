@@ -65,6 +65,7 @@ export class Bot {
         const chatId = msg.chat.id;
         const text = msg.text!;
         this.userSession.set(chatId, this.user)
+        this.userSession.get(chatId)!.tg_id = chatId;
     
         if(this.subscribinState !== SubscribeStates.UNSUBSCRIBE) {
             if (text === SubscribeStates.SUBSCRIBE) {

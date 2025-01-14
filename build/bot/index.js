@@ -62,6 +62,7 @@ var Bot = /** @class */ (function () {
         var chatId = msg.chat.id;
         var text = msg.text;
         this.userSession.set(chatId, this.user);
+        this.userSession.get(chatId).tg_id = chatId;
         if (this.subscribinState !== subscribe_enum_1.SubscribeStates.UNSUBSCRIBE) {
             if (text === subscribe_enum_1.SubscribeStates.SUBSCRIBE) {
                 this.bot.sendMessage(chatId, subscribe_enum_1.SubscribeStates.ASK_NAME);
