@@ -14,5 +14,5 @@ var Queries;
     Queries["UPDATE_MYSTERIES"] = "\n        UPDATE users\n        SET mysteries_id = \n            CASE\n                WHEN mysteries_id + 1 > 20 THEN 1\n                ELSE mysteries_id + 1\n            END;";
     Queries["GET_DAILY_MESSAGE"] = "SELECT * FROM daily_messages WHERE sent_date IS NULL ORDER BY message_id ASC;";
     Queries["UPDATE_DAILY_MESSAGE"] = "UPDATE daily_messages SET sent_date = NOW() WHERE message_id = $1;";
-    Queries["RESET_DAULY_MESSAGES"] = "UPDATE daily_messages SET sent_date = NULL;";
+    Queries["RESET_DAILY_MESSAGES"] = "UPDATE daily_messages SET sent_date = NULL;";
 })(Queries || (exports.Queries = Queries = {}));

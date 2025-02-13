@@ -36,43 +36,36 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.MysteriaService = void 0;
+exports.MessageService = void 0;
 var queries_1 = require("../sql/queries");
-var MysteriaService = /** @class */ (function () {
-    function MysteriaService(database) {
+var MessageService = /** @class */ (function () {
+    function MessageService(database) {
         this.db = database;
     }
-    MysteriaService.prototype.getMysteries = function () {
+    MessageService.prototype.getDailyMessage = function () {
         return __awaiter(this, void 0, void 0, function () {
-            var result;
+            var result, message;
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0: return [4 /*yield*/, this.db.query(queries_1.Queries.GET_MYSTERIES)];
+                    case 0: return [4 /*yield*/, this.db.query(queries_1.Queries.GET_DAILY_MESSAGE)];
                     case 1:
                         result = _a.sent();
-                        return [2 /*return*/, result.rows];
+                        message = result.rows[0];
+                        if (!(message === null || message === void 0 ? void 0 : message.text)) return [3 /*break*/, 3];
+                        return [4 /*yield*/, this.db.query(queries_1.Queries.UPDATE_DAILY_MESSAGE, [message === null || message === void 0 ? void 0 : message.message_id])];
+                    case 2:
+                        _a.sent();
+                        return [2 /*return*/, message.text];
+                    case 3: return [2 /*return*/, null];
                 }
             });
         });
     };
-    MysteriaService.prototype.getMysteriaById = function (id) {
-        return __awaiter(this, void 0, void 0, function () {
-            var result;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0: return [4 /*yield*/, this.db.query(queries_1.Queries.GET_MYSTERIA, [id])];
-                    case 1:
-                        result = _a.sent();
-                        return [2 /*return*/, result.rows[0]];
-                }
-            });
-        });
-    };
-    MysteriaService.prototype.updateMysteria = function () {
+    MessageService.prototype.resetDailyMessage = function () {
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0: return [4 /*yield*/, this.db.query(queries_1.Queries.UPDATE_MYSTERIES)];
+                    case 0: return [4 /*yield*/, this.db.query(queries_1.Queries.RESET_DAILY_MESSAGES)];
                     case 1:
                         _a.sent();
                         return [2 /*return*/];
@@ -80,6 +73,6 @@ var MysteriaService = /** @class */ (function () {
             });
         });
     };
-    return MysteriaService;
+    return MessageService;
 }());
-exports.MysteriaService = MysteriaService;
+exports.MessageService = MessageService;

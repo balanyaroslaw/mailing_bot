@@ -9,8 +9,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 var __generator = (this && this.__generator) || function (thisArg, body) {
-    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
-    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g = Object.create((typeof Iterator === "function" ? Iterator : Object).prototype);
+    return g.next = verb(0), g["throw"] = verb(1), g["return"] = verb(2), typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
     function verb(n) { return function (v) { return step([n, v]); }; }
     function step(op) {
         if (f) throw new TypeError("Generator is already executing.");
@@ -52,7 +52,7 @@ var db_1 = require("../sql/db");
 var bot_1 = require("../utilities/bot");
 var user_controller_1 = require("../controllers/bot/user.controller");
 var user_service_1 = require("../services/user.service");
-var messages_controller_1 = require("../controllers/bot/messages.controller");
+var message_controller_1 = require("../controllers/bot/message.controller");
 var message_service_1 = require("../services/message.service");
 var Bot = /** @class */ (function () {
     function Bot(token) {
@@ -61,7 +61,7 @@ var Bot = /** @class */ (function () {
         this.userSession = new Map();
         this.mysteriaController = new mysteria_controller_1.MysteriaController(new mysteria_service_1.MysteriaService(new db_1.Database));
         this.userController = new user_controller_1.UserController(new user_service_1.UserService(new db_1.Database));
-        this.messageController = new messages_controller_1.MessageController(new message_service_1.MessageService(new db_1.Database));
+        this.messageController = new message_controller_1.MessageController(new message_service_1.MessageService(new db_1.Database));
         this.bot = new node_telegram_bot_api_1.default(token, {
             polling: {
                 interval: 300,
