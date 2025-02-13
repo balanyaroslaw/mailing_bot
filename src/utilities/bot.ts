@@ -22,4 +22,8 @@ export class UtilitesBot{
   public static getId = (data:string):number =>{
     return +data.split('.')[0];
   }
+
+  public static getDaysInMonth(year:number, month:number) {
+    return new Date(year, month + 1, 0).getDate();
+  }
 }

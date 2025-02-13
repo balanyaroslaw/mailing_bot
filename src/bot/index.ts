@@ -2,7 +2,6 @@ import TelegramBot from "node-telegram-bot-api";
 import {replyCompleteButton, replyOptionsButton, replySubscribeButton} from "./buttons.bot";
 import { dailyMessage, EnterMessages, profileMessage, updatedMysteria } from "../keys/messages/messages.messages";
 import { AnswerStates, SubscribeStates } from "../keys/enums/subscribe.enum";
-import { IUser } from "../interfaces/user.interface";
 import { User } from "../models/user.model";
 import { Mysteria } from "../models/mysteria.model";
 import { MysteriaController } from "../controllers/bot/mysteria.controller";
@@ -11,9 +10,8 @@ import { Database } from "../sql/db";
 import { UtilitesBot } from "../utilities/bot";
 import { UserController } from "../controllers/bot/user.controller";
 import { UserService } from "../services/user.service";
-import express from "express";
-import bodyParser from "body-parser";
-
+import { MessageController } from "../controllers/bot/messages.controller";
+import { MessageService } from "../services/message.service";
 export class Bot {
     private static instance: Bot;
     private bot: TelegramBot;
@@ -21,11 +19,13 @@ export class Bot {
     private user:User= new User('', '', null, {} as Mysteria);
     private mysteriaController:MysteriaController;
     private userController:UserController;
+    private messageController:MessageController;
     private userSession:Map<number, User> = new Map<number, User>();
 
     constructor(private token: string) {
         this.mysteriaController = new MysteriaController(new MysteriaService(new Database));
         this.userController = new UserController(new UserService(new Database));
+        this.messageController = new MessageController(new MessageService(new Database));
         this.bot = new TelegramBot(token, {
             polling: {
               interval: 300,  
@@ -61,114 +61,152 @@ export class Bot {
         }
     }
 
-    private handleSubscribing(msg: TelegramBot.Message): void {
-        const chatId = msg.chat.id;
-        const text = msg.text!;
-        this.userSession.set(chatId, this.user)
-        this.userSession.get(chatId)!.tg_id = chatId;
-    
-        if(this.subscribinState !== SubscribeStates.UNSUBSCRIBE) {
-            if (text === SubscribeStates.SUBSCRIBE) {
-                this.bot.sendMessage(chatId, SubscribeStates.ASK_NAME);
-                this.subscribinState = SubscribeStates.ASK_NAME;
-            } 
-            else if (this.subscribinState === SubscribeStates.ASK_NAME) {
-                this.userSession.get(chatId)!.name = text;
-                this.bot.sendMessage(chatId, `${AnswerStates.RECORD_NAME}: ${text} \n${SubscribeStates.ASK_EMAIL}`);
-                this.subscribinState = SubscribeStates.ASK_EMAIL;
-            }
-            else if(this.subscribinState === SubscribeStates.ASK_EMAIL) {
-                this.userSession.get(chatId)!.email = text;
-                this.mysteriaController.getAllMysteries()
-                .then(mysteriesKeyboard => {
-                    this.bot.sendMessage(chatId, `${AnswerStates.RECORD_EMAIL}: ${text} \n${SubscribeStates.ASK_MYSTERIA}`, mysteriesKeyboard);
-                })
-                .catch(error=>console.log(error))
-                .finally(() => this.subscribinState = SubscribeStates.ASK_MYSTERIA);
-            }
-            else if(this.subscribinState === SubscribeStates.ASK_MYSTERIA) {
-                this.userSession.get(chatId)!.mysteria = new Mysteria(text, UtilitesBot.getId(text));
-                this.userSession.get(chatId)!.mysteria.text = text; 
-                this.bot.sendMessage(chatId, profileMessage(this.userSession.get(chatId)!.name, this.userSession.get(chatId)!.email, this.userSession.get(chatId)!.mysteria.text), replyCompleteButton);
-                this.subscribinState = SubscribeStates.ASK_COMPLETE;
-            }
-    
-            if(text === AnswerStates.COMPLETE){
-                this.userController.getUser(chatId).then(existedUser=>{
-                    if(existedUser){
-                        this.userController.updateUser(this.userSession.get(chatId)!)
-                        .then(()=>{
-                            this.bot.sendMessage(chatId, SubscribeStates.UPDATE, replyOptionsButton);
-                            this.user = new User('','', null, {} as Mysteria);
-                            this.userSession.delete(chatId);
-                        })
-                        .catch(error=>console.log(error))
-                    }
-                    else{
-                        this.userController.addNewUser(this.userSession.get(chatId)!)
-                            .catch(error=>console.log(error))
-                            .finally(()=>{
-                                this.bot.sendMessage(chatId, AnswerStates.END, replyOptionsButton); 
-                                this.user = new User('','', null, {} as Mysteria);
-                                this.userSession.delete(chatId);
-                            })
-                    }
-                })
-            }
-        }
-    
-        if(text === SubscribeStates.AGAIN){
-            this.user = new User('', '', null, {} as Mysteria);
-            this.userSession.delete(chatId);
+    private async handleSubscribing(msg: TelegramBot.Message): Promise<void> {
+        try {
+            const chatId = msg.chat.id;
+            const text = msg.text!;
             this.userSession.set(chatId, this.user);
-            this.subscribinState = SubscribeStates.SUBSCRIBE;
-            this.bot.sendMessage(chatId, SubscribeStates.ASK_NAME);
-            this.subscribinState = SubscribeStates.ASK_NAME;
+            this.userSession.get(chatId)!.tg_id = chatId;
+    
+            if (this.subscribinState !== SubscribeStates.UNSUBSCRIBE) {
+                if (text === SubscribeStates.SUBSCRIBE) {
+                    this.bot.sendMessage(chatId, SubscribeStates.ASK_NAME);
+                    this.subscribinState = SubscribeStates.ASK_NAME;
+                } 
+                else if (this.subscribinState === SubscribeStates.ASK_NAME) {
+                    this.userSession.get(chatId)!.name = text;
+                    this.bot.sendMessage(chatId, `${AnswerStates.RECORD_NAME}: ${text} \n${SubscribeStates.ASK_EMAIL}`);
+                    this.subscribinState = SubscribeStates.ASK_EMAIL;
+                }
+                else if (this.subscribinState === SubscribeStates.ASK_EMAIL) {
+                    this.userSession.get(chatId)!.email = text;
+                    try {
+                        const mysteriesKeyboard = await this.mysteriaController.getAllMysteries();
+                        this.bot.sendMessage(chatId, `${AnswerStates.RECORD_EMAIL}: ${text} \n${SubscribeStates.ASK_MYSTERIA}`, mysteriesKeyboard);
+                    } catch (error) {
+                        console.error(error);
+                    } finally {
+                        this.subscribinState = SubscribeStates.ASK_MYSTERIA;
+                    }
+                }
+                else if (this.subscribinState === SubscribeStates.ASK_MYSTERIA) {
+                    this.userSession.get(chatId)!.mysteria = new Mysteria(text, UtilitesBot.getId(text));
+                    this.userSession.get(chatId)!.mysteria.text = text;
+                    this.bot.sendMessage(
+                        chatId, 
+                        profileMessage(
+                            this.userSession.get(chatId)!.name, 
+                            this.userSession.get(chatId)!.email, 
+                            this.userSession.get(chatId)!.mysteria.text
+                        ), 
+                        replyCompleteButton
+                    );
+                    this.subscribinState = SubscribeStates.ASK_COMPLETE;
+                }
+    
+                if (text === AnswerStates.COMPLETE) {
+                    try {
+                        const existedUser = await this.userController.getUser(chatId);
+                        if (existedUser) {
+                            await this.userController.updateUser(this.userSession.get(chatId)!);
+                            this.bot.sendMessage(chatId, SubscribeStates.UPDATE, replyOptionsButton);
+                        } else {
+                            await this.userController.addNewUser(this.userSession.get(chatId)!);
+                            this.bot.sendMessage(chatId, AnswerStates.END, replyOptionsButton);
+                        }
+                    } catch (error) {
+                        console.error(error);
+                    } finally {
+                        this.user = new User('', '', null, {} as Mysteria);
+                        this.userSession.delete(chatId);
+                    }
+                }
+            }
+    
+            if (text === SubscribeStates.AGAIN) {
+                this.user = new User('', '', null, {} as Mysteria);
+                this.userSession.delete(chatId);
+                this.userSession.set(chatId, this.user);
+                this.subscribinState = SubscribeStates.ASK_NAME;
+                this.bot.sendMessage(chatId, SubscribeStates.ASK_NAME);
+            }
+        } catch (error) {
+            console.error(error);
         }
     }
 
-    private handleDelete(msg: TelegramBot.Message):void{
-        const chatId = msg.chat.id;
-        const text = msg.text!;
-        console.log(this.subscribinState)
-        console.log(this.userSession.get(chatId))
-        if(text === SubscribeStates.UNSUBSCRIBE){
-            this.userController.deleteUser(this.user).then(()=>{
-                this.bot.sendMessage(chatId, AnswerStates.END_UNSUBSCRIBING)
+
+    private async handleDelete(msg: TelegramBot.Message): Promise<void> {
+        try {
+            const chatId = msg.chat.id;
+            const text = msg.text!;
+            
+            console.log(this.subscribinState);
+            console.log(this.userSession.get(chatId));
+    
+            if (text === SubscribeStates.UNSUBSCRIBE) {
+                await this.userController.deleteUser(this.user);
+                
+                this.bot.sendMessage(chatId, AnswerStates.END_UNSUBSCRIBING);
+                
                 this.user = new User('', '', null, {} as Mysteria);
                 this.userSession.delete(chatId);
                 this.subscribinState = SubscribeStates.SUBSCRIBE;
-                if(this.subscribinState === SubscribeStates.SUBSCRIBE){
-                    this.bot.sendMessage(chatId, EnterMessages.enter_message, replySubscribeButton);
-                }
-                else{
-                    this.bot.sendMessage(chatId, '');
-                }
-        });
+    
+                const message = this.subscribinState === SubscribeStates.SUBSCRIBE 
+                    ? EnterMessages.enter_message 
+                    : '';
+                this.bot.sendMessage(chatId, message, replySubscribeButton);
+            }
+        } catch (error) {
+            console.error(error);
         }
     }
 
-    private handleUpdateMysteries(chatId:number):void{
-        if(new Date().getDate() === 1){
-            this.mysteriaController.updateMysteries().then(()=>{
-                this.userController.getUser(chatId).then(user=>{
-                    this.mysteriaController.getMysteriaById(user?.mysteries_id!).then(mysteria=>{
-                        this.bot.sendMessage(chatId, updatedMysteria(mysteria));
-                    }).catch(error=>console.log(error))
-                }).catch(error=>console.log(error))
-            }).catch(error=>console.log(error))
-        }
-    }
-
-    private Mailing():void{
-        this.userController.getAllUsers().then((users) => {
-            for (let user of users) {
-                if (user.tg_id) {
-                    this.bot.sendMessage(user.tg_id!, dailyMessage());
-                    this.handleUpdateMysteries(user.tg_id!);
+    private async handleUpdateMysteries(): Promise<void> {
+        try {
+            if (new Date().getDate() !== 1) return;
+    
+            await this.mysteriaController.updateMysteries();
+            const users = await this.userController.getAllUsers();
+    
+            for (const user of users) {
+                if (!user.tg_id) continue;
+    
+                try {
+                    const userData = await this.userController.getUser(user.tg_id);
+                    if (!userData?.mysteries_id) continue;
+    
+                    const mysteria = await this.mysteriaController.getMysteriaById(userData.mysteries_id);
+                    await this.bot.sendMessage(user.tg_id, updatedMysteria(mysteria));
+                } catch (error) {
+                    console.error(`Error processing user ${user.tg_id}:`, error);
                 }
             }
-        }).catch(error=>console.log(error));;
+        } catch (error) {
+            console.error("Error updating mysteries:", error);
+        }
+    }
+
+    private async Mailing(): Promise<void> {
+        const now = new Date();
+        try {
+            this.handleUpdateMysteries();
+            const users = await this.userController.getAllUsers();
+            const message = await this.messageController.getDailyMessage();
+            for (const user of users) {
+                if (user.tg_id) {
+                    await this.bot.sendMessage(user.tg_id, dailyMessage(message));
+                }
+            }
+
+            if(UtilitesBot.getDaysInMonth(now.getFullYear(), now.getMonth()) === now.getDate()){
+                await this.messageController.resetDailyMessage();
+            }
+
+        } catch (error) {
+            console.error(error);
+        }
     }
     
     private scheduleDailyMailing(): void {
