@@ -7,7 +7,7 @@ export class MysteriaController{
 
     async getAllMysteries(){
         const mysteries = await this.mysteriesService.getMysteries();
-        const textOfMysteries = mysteries.map(e=>`${e.mysteries_id}. ${e.text}`)
+        const textOfMysteries = mysteries.sort((a,b)=>a.mysteries_id! - b.mysteries_id!).map(e=>`${e.mysteries_id}. ${e.text}`)
         const replyKeyboard = UtilitesBot.keyboard(2, textOfMysteries)
         return replyKeyboard;
     }
