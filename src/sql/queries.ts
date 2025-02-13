@@ -5,7 +5,7 @@ export enum Queries {
     GET_USER_BY_TG = 'SELECT * FROM users WHERE tg_id = $1;',
     UPDATE_USER = 'UPDATE users SET name = $1, email = $2, mysteries_id = $3 WHERE tg_id = $4;',
 
-    GET_MYSTERIES = 'SELECT * FROM mysteries;',
+    GET_MYSTERIES = 'SELECT * FROM mysteries ORDER BY mysteries_id ASC;',
     GET_MYSTERIA = 'SELECT m.mysteries_id, m.text, c.comment_text FROM mysteries AS m JOIN mysteries_comments AS c ON m.mysteries_id = c.comment_id WHERE mysteries_id = $1;',
     GET_MYSTERIA_BY_TEXT = 'SELECT * FROM mysteries WHERE text = $1;',
     UPDATE_MYSTERIES = `
