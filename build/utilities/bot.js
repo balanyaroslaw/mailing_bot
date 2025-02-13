@@ -4,6 +4,9 @@ exports.UtilitesBot = void 0;
 var UtilitesBot = /** @class */ (function () {
     function UtilitesBot() {
     }
+    UtilitesBot.getDaysInMonth = function (year, month) {
+        return new Date(year, month + 1, 0).getDate();
+    };
     UtilitesBot.keyboard = function (rows, array) {
         var resultArray = [];
         for (var i = 0; i < array.length; i += rows) {
