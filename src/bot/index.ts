@@ -10,7 +10,7 @@ import { Database } from "../sql/db";
 import { UtilitesBot } from "../utilities/bot";
 import { UserController } from "../controllers/bot/user.controller";
 import { UserService } from "../services/user.service";
-import { MessageController } from "../controllers/bot/messages.controller";
+import { MessageController } from "../controllers/bot/message.controller";
 import { MessageService } from "../services/message.service";
 export class Bot {
     private static instance: Bot;

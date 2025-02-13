@@ -18,5 +18,5 @@ export enum Queries {
 
     GET_DAILY_MESSAGE = 'SELECT * FROM daily_messages WHERE sent_date IS NULL ORDER BY message_id ASC;',
     UPDATE_DAILY_MESSAGE = 'UPDATE daily_messages SET sent_date = NOW() WHERE message_id = $1;',
-    RESET_DAULY_MESSAGES = 'UPDATE daily_messages SET sent_date = NULL;'
+    RESET_DAILY_MESSAGES = 'UPDATE daily_messages SET sent_date = NULL;'
 }
