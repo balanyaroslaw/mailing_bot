@@ -16,9 +16,9 @@ export class MessageService{
     async getDailyMessage(): Promise<string | null> {
       const result = await this.db.query<IDailyMessage>(Queries.GET_DAILY_MESSAGE);
       const message = result.rows[0];
-      if(message.text){
-        await this.db.query(Queries.UPDATE_DAILY_MESSAGE, [message.message_id]);
-        
+      if(message?.text){
+        await this.db.query(Queries.UPDATE_DAILY_MESSAGE, [message?.message_id]);
+
         return message.text
       }
       return null;

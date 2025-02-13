@@ -166,7 +166,7 @@ export class Bot {
     private async handleUpdateMysteries(): Promise<void> {
         try {
             if (new Date().getDate() !== 1) return;
-    
+
             await this.mysteriaController.updateMysteries();
             const users = await this.userController.getAllUsers();
     
