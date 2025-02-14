@@ -98,16 +98,17 @@ var Bot = /** @class */ (function () {
     };
     Bot.prototype.handleSubscribing = function (msg) {
         return __awaiter(this, void 0, void 0, function () {
-            var chatId, text, mysteriesKeyboard, error_1, existedUser, error_2, error_3;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
+            var chatId, text, mysteriesKeyboard, error_1, existedUser, mysteria, error_2, error_3;
+            var _a;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
                     case 0:
-                        _a.trys.push([0, 19, , 20]);
+                        _b.trys.push([0, 22, , 23]);
                         chatId = msg.chat.id;
                         text = msg.text;
                         this.userSession.set(chatId, this.user);
                         this.userSession.get(chatId).tg_id = chatId;
-                        if (!(this.subscribinState !== subscribe_enum_1.SubscribeStates.UNSUBSCRIBE)) return [3 /*break*/, 18];
+                        if (!(this.subscribinState !== subscribe_enum_1.SubscribeStates.UNSUBSCRIBE)) return [3 /*break*/, 21];
                         if (!(text === subscribe_enum_1.SubscribeStates.SUBSCRIBE)) return [3 /*break*/, 1];
                         this.bot.sendMessage(chatId, subscribe_enum_1.SubscribeStates.ASK_NAME);
                         this.subscribinState = subscribe_enum_1.SubscribeStates.ASK_NAME;
@@ -121,16 +122,16 @@ var Bot = /** @class */ (function () {
                     case 2:
                         if (!(this.subscribinState === subscribe_enum_1.SubscribeStates.ASK_EMAIL)) return [3 /*break*/, 8];
                         this.userSession.get(chatId).email = text;
-                        _a.label = 3;
+                        _b.label = 3;
                     case 3:
-                        _a.trys.push([3, 5, 6, 7]);
+                        _b.trys.push([3, 5, 6, 7]);
                         return [4 /*yield*/, this.mysteriaController.getAllMysteries()];
                     case 4:
-                        mysteriesKeyboard = _a.sent();
+                        mysteriesKeyboard = _b.sent();
                         this.bot.sendMessage(chatId, "".concat(subscribe_enum_1.AnswerStates.RECORD_EMAIL, ": ").concat(text, " \n").concat(subscribe_enum_1.SubscribeStates.ASK_MYSTERIA), mysteriesKeyboard);
                         return [3 /*break*/, 7];
                     case 5:
-                        error_1 = _a.sent();
+                        error_1 = _b.sent();
                         console.error(error_1);
                         return [3 /*break*/, 7];
                     case 6:
@@ -144,36 +145,44 @@ var Bot = /** @class */ (function () {
                             this.bot.sendMessage(chatId, (0, messages_messages_1.profileMessage)(this.userSession.get(chatId).name, this.userSession.get(chatId).email, this.userSession.get(chatId).mysteria.text), buttons_bot_1.replyCompleteButton);
                             this.subscribinState = subscribe_enum_1.SubscribeStates.ASK_COMPLETE;
                         }
-                        _a.label = 9;
+                        _b.label = 9;
                     case 9:
-                        if (!(text === subscribe_enum_1.AnswerStates.COMPLETE)) return [3 /*break*/, 18];
-                        _a.label = 10;
+                        if (!(text === subscribe_enum_1.AnswerStates.COMPLETE)) return [3 /*break*/, 21];
+                        _b.label = 10;
                     case 10:
-                        _a.trys.push([10, 16, 17, 18]);
+                        _b.trys.push([10, 19, 20, 21]);
                         return [4 /*yield*/, this.userController.getUser(chatId)];
                     case 11:
-                        existedUser = _a.sent();
+                        existedUser = _b.sent();
                         if (!existedUser) return [3 /*break*/, 13];
                         return [4 /*yield*/, this.userController.updateUser(this.userSession.get(chatId))];
                     case 12:
-                        _a.sent();
+                        _b.sent();
                         this.bot.sendMessage(chatId, subscribe_enum_1.SubscribeStates.UPDATE, buttons_bot_1.replyOptionsButton);
-                        return [3 /*break*/, 15];
+                        return [3 /*break*/, 18];
                     case 13: return [4 /*yield*/, this.userController.addNewUser(this.userSession.get(chatId))];
                     case 14:
-                        _a.sent();
-                        this.bot.sendMessage(chatId, subscribe_enum_1.AnswerStates.END, buttons_bot_1.replyOptionsButton);
-                        _a.label = 15;
-                    case 15: return [3 /*break*/, 18];
+                        _b.sent();
+                        return [4 /*yield*/, this.mysteriaController.getMysteriaById((_a = this.userSession.get(chatId)) === null || _a === void 0 ? void 0 : _a.mysteria.mysteries_id)];
+                    case 15:
+                        mysteria = _b.sent();
+                        return [4 /*yield*/, this.bot.sendMessage(chatId, "".concat(subscribe_enum_1.AnswerStates.END, " \n").concat((0, messages_messages_1.initialMessage)()), buttons_bot_1.replyOptionsButton)];
                     case 16:
-                        error_2 = _a.sent();
-                        console.error(error_2);
-                        return [3 /*break*/, 18];
+                        _b.sent();
+                        return [4 /*yield*/, this.bot.sendMessage(chatId, (0, messages_messages_1.updatedMysteria)(mysteria), buttons_bot_1.replyOptionsButton)];
                     case 17:
+                        _b.sent();
+                        _b.label = 18;
+                    case 18: return [3 /*break*/, 21];
+                    case 19:
+                        error_2 = _b.sent();
+                        console.error(error_2);
+                        return [3 /*break*/, 21];
+                    case 20:
                         this.user = new user_model_1.User('', '', null, {});
                         this.userSession.delete(chatId);
                         return [7 /*endfinally*/];
-                    case 18:
+                    case 21:
                         if (text === subscribe_enum_1.SubscribeStates.AGAIN) {
                             this.user = new user_model_1.User('', '', null, {});
                             this.userSession.delete(chatId);
@@ -181,12 +190,12 @@ var Bot = /** @class */ (function () {
                             this.subscribinState = subscribe_enum_1.SubscribeStates.ASK_NAME;
                             this.bot.sendMessage(chatId, subscribe_enum_1.SubscribeStates.ASK_NAME);
                         }
-                        return [3 /*break*/, 20];
-                    case 19:
-                        error_3 = _a.sent();
+                        return [3 /*break*/, 23];
+                    case 22:
+                        error_3 = _b.sent();
                         console.error(error_3);
-                        return [3 /*break*/, 20];
-                    case 20: return [2 /*return*/];
+                        return [3 /*break*/, 23];
+                    case 23: return [2 /*return*/];
                 }
             });
         });

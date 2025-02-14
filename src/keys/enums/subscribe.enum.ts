@@ -1,7 +1,7 @@
 
 export enum SubscribeStates {
     UNSUBSCRIBE = 'Відписатися',
-    ASK_NAME = 'Як вас звати?',
+    ASK_NAME = `Введіть ваше повне ім'я?`,
     ASK_EMAIL = 'Яка ваша електрона пошта',
     ASK_MYSTERIA = 'Виберіть тамєницю, що ви молитеся зараз',
     ASK_COMPLETE = 'Все вірно?',
@@ -18,7 +18,7 @@ export enum AnswerStates {
     RECORD_EMAIL = 'Електронна адреса записана',
     RECORD_MYSTERIA = 'Таємниця записана',
     SUBSCRIBE = 'Підписатися',
-    COMPLETE = 'Все вірно',
+    COMPLETE = 'Закінчити реєстрацію',
     END = 'Реєстрація завершена',
     END_UNSUBSCRIBING = 'Ви відписані'
 }

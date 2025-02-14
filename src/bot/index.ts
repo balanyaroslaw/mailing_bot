@@ -1,6 +1,6 @@
 import TelegramBot from "node-telegram-bot-api";
 import {replyCompleteButton, replyOptionsButton, replySubscribeButton} from "./buttons.bot";
-import { dailyMessage, EnterMessages, profileMessage, updatedMysteria } from "../keys/messages/messages.messages";
+import { dailyMessage, EnterMessages, initialMessage, profileMessage, updatedMysteria } from "../keys/messages/messages.messages";
 import { AnswerStates, SubscribeStates } from "../keys/enums/subscribe.enum";
 import { User } from "../models/user.model";
 import { Mysteria } from "../models/mysteria.model";
@@ -110,10 +110,15 @@ export class Bot {
                         if (existedUser) {
                             await this.userController.updateUser(this.userSession.get(chatId)!);
                             this.bot.sendMessage(chatId, SubscribeStates.UPDATE, replyOptionsButton);
+
                         } else {
                             await this.userController.addNewUser(this.userSession.get(chatId)!);
-                            this.bot.sendMessage(chatId, AnswerStates.END, replyOptionsButton);
+                            const mysteria = await this.mysteriaController.getMysteriaById(this.userSession.get(chatId)?.mysteria.mysteries_id!);
+                            await this.bot.sendMessage(chatId, `${AnswerStates.END} \n${initialMessage()}`, replyOptionsButton);
+                            await this.bot.sendMessage(chatId, updatedMysteria(mysteria), replyOptionsButton);
+                            
                         }
+
                     } catch (error) {
                         console.error(error);
                     } finally {
@@ -166,7 +171,6 @@ export class Bot {
     private async handleUpdateMysteries(): Promise<void> {
         try {
             if (new Date().getDate() !== 1) return;
-
             await this.mysteriaController.updateMysteries();
             const users = await this.userController.getAllUsers();
     

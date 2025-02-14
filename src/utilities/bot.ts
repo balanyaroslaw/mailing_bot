@@ -26,4 +26,10 @@ export class UtilitesBot{
   public static getDaysInMonth(year:number, month:number) {
     return new Date(year, month + 1, 0).getDate();
   }
+
+  public static formatMessage(data:string){
+    const [article, author] = data.split('. – ');
+
+    return `${article}. \n© ${author}`;
+  }
 }

@@ -7,6 +7,10 @@ var UtilitesBot = /** @class */ (function () {
     UtilitesBot.getDaysInMonth = function (year, month) {
         return new Date(year, month + 1, 0).getDate();
     };
+    UtilitesBot.formatMessage = function (data) {
+        var _a = data.split('. – '), article = _a[0], author = _a[1];
+        return "".concat(article, ". \n\u00A9 ").concat(author);
+    };
     UtilitesBot.keyboard = function (rows, array) {
         var resultArray = [];
         for (var i = 0; i < array.length; i += rows) {
