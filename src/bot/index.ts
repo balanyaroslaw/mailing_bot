@@ -51,33 +51,26 @@ export class Bot {
 
     private handleStartCommand(msg: TelegramBot.Message): void {
         const chatId = msg.chat.id;
-        this.subscribinState = SubscribeStates.SUBSCRIBE;
-        if(this.subscribinState === SubscribeStates.SUBSCRIBE){
-            this.bot.sendMessage(chatId, EnterMessages.enter_message, replySubscribeButton);
+        if(msg.text===SubscribeStates.SUBSCRIBE){
+            this.subscribinState = SubscribeStates.SUBSCRIBE;
         }
-        else{
-            this.bot.sendMessage(chatId, '');
-        }
+        this.bot.sendMessage(chatId, EnterMessages.enter_message, replySubscribeButton);
     }
 
     private async handleSubscribing(msg: TelegramBot.Message): Promise<void> {
         try {
             const chatId = msg.chat.id;
             const text = msg.text!;
-            
+    
             if (!this.userSession.has(chatId)) {
                 this.userSession.set(chatId, new User('', '', chatId, {} as Mysteria));
             }
-            
-            const user = this.userSession.get(chatId)!;
     
-            if (!user.subscribinState) {
-                user.subscribinState = SubscribeStates.ASK_NAME;
-            }
+            const user = this.userSession.get(chatId)!;
     
             if (text === SubscribeStates.SUBSCRIBE) {
                 user.subscribinState = SubscribeStates.ASK_NAME;
-                this.bot.sendMessage(chatId, SubscribeStates.ASK_NAME);
+                await this.bot.sendMessage(chatId, SubscribeStates.ASK_NAME);
                 return;
             }
     
@@ -130,44 +123,34 @@ export class Bot {
                         }
                     }
                     break;
-    
-                default:
-                    this.bot.sendMessage(chatId, "Invalid input. Please follow the steps.");
-                    break;
             }
     
             if (text === SubscribeStates.AGAIN) {
                 this.userSession.set(chatId, new User('', '', chatId, {} as Mysteria));
+                this.userSession.get(chatId)!.subscribinState = SubscribeStates.ASK_NAME;
                 this.bot.sendMessage(chatId, SubscribeStates.ASK_NAME);
             }
-    
+
         } catch (error) {
             console.error(error);
         }
     }
 
-
     private async handleDelete(msg: TelegramBot.Message): Promise<void> {
         try {
             const chatId = msg.chat.id;
             const text = msg.text!;
-            
-            console.log(this.subscribinState);
-            console.log(this.userSession.get(chatId));
     
+            console.log("Current subscribe state:", this.userSession.get(chatId)?.subscribinState);
+    
+            const user = this.userSession.get(chatId)!;
             if (text === SubscribeStates.UNSUBSCRIBE) {
-                await this.userController.deleteUser(this.user);
-                
+                await this.userController.deleteUser(user);
                 this.bot.sendMessage(chatId, AnswerStates.END_UNSUBSCRIBING);
-                
-                this.user = new User('', '', null, {} as Mysteria);
-                this.userSession.delete(chatId);
-                this.subscribinState = SubscribeStates.SUBSCRIBE;
     
-                const message = this.subscribinState === SubscribeStates.SUBSCRIBE 
-                    ? EnterMessages.enter_message 
-                    : '';
-                this.bot.sendMessage(chatId, message, replySubscribeButton);
+                this.userSession.delete(chatId);
+    
+                this.bot.sendMessage(chatId, EnterMessages.enter_message, replySubscribeButton);
             }
         } catch (error) {
             console.error(error);
