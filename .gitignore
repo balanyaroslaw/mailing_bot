@@ -23,7 +23,6 @@ jspm_packages/
 # Build output
 dist/
 
-
 # IDEs and Editors
 .idea/
 .vscode/

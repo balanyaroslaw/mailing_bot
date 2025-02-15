@@ -21,7 +21,6 @@ export class Bot {
     private userController:UserController;
     private messageController:MessageController;
     private userSession:Map<number, User> = new Map<number, User>();
-
     constructor(private token: string) {
         this.mysteriaController = new MysteriaController(new MysteriaService(new Database));
         this.userController = new UserController(new UserService(new Database));
@@ -65,76 +64,83 @@ export class Bot {
         try {
             const chatId = msg.chat.id;
             const text = msg.text!;
-            this.userSession.set(chatId, this.user);
-            this.userSession.get(chatId)!.tg_id = chatId;
+            
+            if (!this.userSession.has(chatId)) {
+                this.userSession.set(chatId, new User('', '', chatId, {} as Mysteria));
+            }
+            
+            const user = this.userSession.get(chatId)!;
     
-            if (this.subscribinState !== SubscribeStates.UNSUBSCRIBE) {
-                if (text === SubscribeStates.SUBSCRIBE) {
-                    this.bot.sendMessage(chatId, SubscribeStates.ASK_NAME);
-                    this.subscribinState = SubscribeStates.ASK_NAME;
-                } 
-                else if (this.subscribinState === SubscribeStates.ASK_NAME) {
-                    this.userSession.get(chatId)!.name = text;
+            if (!user.subscribinState) {
+                user.subscribinState = SubscribeStates.ASK_NAME;
+            }
+    
+            if (text === SubscribeStates.SUBSCRIBE) {
+                user.subscribinState = SubscribeStates.ASK_NAME;
+                this.bot.sendMessage(chatId, SubscribeStates.ASK_NAME);
+                return;
+            }
+    
+            switch (user.subscribinState) {
+                case SubscribeStates.ASK_NAME:
+                    user.name = text;
                     this.bot.sendMessage(chatId, `${AnswerStates.RECORD_NAME}: ${text} \n${SubscribeStates.ASK_EMAIL}`);
-                    this.subscribinState = SubscribeStates.ASK_EMAIL;
-                }
-                else if (this.subscribinState === SubscribeStates.ASK_EMAIL) {
-                    this.userSession.get(chatId)!.email = text;
+                    user.subscribinState = SubscribeStates.ASK_EMAIL;
+                    break;
+    
+                case SubscribeStates.ASK_EMAIL:
+                    user.email = text;
                     try {
                         const mysteriesKeyboard = await this.mysteriaController.getAllMysteries();
                         this.bot.sendMessage(chatId, `${AnswerStates.RECORD_EMAIL}: ${text} \n${SubscribeStates.ASK_MYSTERIA}`, mysteriesKeyboard);
                     } catch (error) {
                         console.error(error);
                     } finally {
-                        this.subscribinState = SubscribeStates.ASK_MYSTERIA;
+                        user.subscribinState = SubscribeStates.ASK_MYSTERIA;
                     }
-                }
-                else if (this.subscribinState === SubscribeStates.ASK_MYSTERIA) {
-                    this.userSession.get(chatId)!.mysteria = new Mysteria(text, UtilitesBot.getId(text));
-                    this.userSession.get(chatId)!.mysteria.text = text;
+                    break;
+    
+                case SubscribeStates.ASK_MYSTERIA:
+                    user.mysteria = new Mysteria(text, UtilitesBot.getId(text));
                     this.bot.sendMessage(
-                        chatId, 
-                        profileMessage(
-                            this.userSession.get(chatId)!.name, 
-                            this.userSession.get(chatId)!.email, 
-                            this.userSession.get(chatId)!.mysteria.text
-                        ), 
+                        chatId,
+                        profileMessage(user.name, user.email, user.mysteria.text),
                         replyCompleteButton
                     );
-                    this.subscribinState = SubscribeStates.ASK_COMPLETE;
-                }
+                    user.subscribinState = SubscribeStates.ASK_COMPLETE;
+                    break;
     
-                if (text === AnswerStates.COMPLETE) {
-                    try {
-                        const existedUser = await this.userController.getUser(chatId);
-                        if (existedUser) {
-                            await this.userController.updateUser(this.userSession.get(chatId)!);
-                            this.bot.sendMessage(chatId, SubscribeStates.UPDATE, replyOptionsButton);
-
-                        } else {
-                            await this.userController.addNewUser(this.userSession.get(chatId)!);
-                            const mysteria = await this.mysteriaController.getMysteriaById(this.userSession.get(chatId)?.mysteria.mysteries_id!);
-                            await this.bot.sendMessage(chatId, `${AnswerStates.END} \n${initialMessage()}`, replyOptionsButton);
-                            await this.bot.sendMessage(chatId, updatedMysteria(mysteria), replyOptionsButton);
-                            
+                case SubscribeStates.ASK_COMPLETE:
+                    if (text === AnswerStates.COMPLETE) {
+                        try {
+                            const existedUser = await this.userController.getUser(chatId);
+                            if (existedUser) {
+                                await this.userController.updateUser(user);
+                                this.bot.sendMessage(chatId, SubscribeStates.UPDATE, replyOptionsButton);
+                            } else {
+                                await this.userController.addNewUser(user);
+                                const mysteria = await this.mysteriaController.getMysteriaById(user.mysteria.mysteries_id!);
+                                await this.bot.sendMessage(chatId, `${AnswerStates.END} \n${initialMessage()}`, replyOptionsButton);
+                                await this.bot.sendMessage(chatId, updatedMysteria(mysteria), replyOptionsButton);
+                            }
+                        } catch (error) {
+                            console.error(error);
+                        } finally {
+                            this.userSession.delete(chatId);
                         }
-
-                    } catch (error) {
-                        console.error(error);
-                    } finally {
-                        this.user = new User('', '', null, {} as Mysteria);
-                        this.userSession.delete(chatId);
                     }
-                }
+                    break;
+    
+                default:
+                    this.bot.sendMessage(chatId, "Invalid input. Please follow the steps.");
+                    break;
             }
     
             if (text === SubscribeStates.AGAIN) {
-                this.user = new User('', '', null, {} as Mysteria);
-                this.userSession.delete(chatId);
-                this.userSession.set(chatId, this.user);
-                this.subscribinState = SubscribeStates.ASK_NAME;
+                this.userSession.set(chatId, new User('', '', chatId, {} as Mysteria));
                 this.bot.sendMessage(chatId, SubscribeStates.ASK_NAME);
             }
+    
         } catch (error) {
             console.error(error);
         }
